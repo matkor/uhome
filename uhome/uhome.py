@@ -62,7 +62,7 @@ class Entity(Device):
             "uniq_id":self.unique_id,
             "avty_t":self.device._mqttc.lw_topic, # Availability topic
         }
-        if self.entity_type == 'sensor':
+        if self.entity_type == 'sensor' or self.entity_type == 'binary_sensor':
             conf["stat_t"] = self.topic # State topic
         elif self.entity_type == 'button':
             conf["cmd_t"] = self.topic # Command topic
@@ -76,6 +76,17 @@ class Entity(Device):
 class Sensor(Entity):
 
     entity_type = 'sensor'
+    _last_payload = None
+    
+    def publish(self, payload):
+        payload = str(payload)
+        if payload == self._last_payload: return
+        self.device._mqttc.publish(f'{self.conf['stat_t']}', payload)
+        self._last_payload = payload
+
+class BinarySensor(Entity):
+
+    entity_type = 'binary_sensor'
     _last_payload = None
     
     def publish(self, payload):
