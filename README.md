@@ -1,8 +1,7 @@
 [![License](https://img.shields.io/github/license/ederjc/uhome?style=plastic)](LICENSE.md)
-[![Last commit](https://img.shields.io/github/commit-activity/w/ederjc/uhome?style=plastic)](https://github.com/ederjc/uhome/commits)
+[![Commit activity](https://img.shields.io/github/commit-activity/w/ederjc/uhome?style=plastic)](https://github.com/ederjc/uhome/commits)
 [![Issues](https://img.shields.io/github/issues/ederjc/uhome?style=plastic)](https://github.com/ederjc/uhome/issues)
 [![Pull requests](https://img.shields.io/github/issues-pr-raw/ederjc/uhome?style=plastic)](https://github.com/ederjc/uhome/pulls)
-[![Version](https://img.shields.io/github/package-json/v/ederjc/uhome?style=plastic)](https://github.com/ederjc/uhome/blob/main)
 
 # uhome
 A MicroPython module for simplified Home Assistant MQTT Auto Discovery.
@@ -80,6 +79,6 @@ In this case `sta` is the network object used to connect to the Wi-Fi network. H
 
 ## More Information
 ### Home Assistant
-- (MQTT integration)[https://www.home-assistant.io/integrations/mqtt]
-- (MQTT Sensor integration)[https://www.home-assistant.io/integrations/sensor.mqtt]
-- (MQTT Binary Sensor integration)[https://www.home-assistant.io/integrations/binary_sensor.mqtt]
+- [MQTT integration](https://www.home-assistant.io/integrations/mqtt)
+- [MQTT Sensor integration](https://www.home-assistant.io/integrations/sensor.mqtt)
+- [MQTT Binary Sensor integration](https://www.home-assistant.io/integrations/binary_sensor.mqtt)
