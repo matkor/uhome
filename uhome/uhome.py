@@ -158,6 +158,10 @@ class Entity:
         self.topic = f'{self.topic_prefix}/state/{self.entity}'
         self.conf = self.make_conf(**kwargs)
 
+
+    def __str__(self):
+        return f"{self.__class__.__name__}-{self.entity}"
+
     def make_conf(self, **kwargs):
         """
         Internal method to generate a configuration dictionary for the device.
