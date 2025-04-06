@@ -76,11 +76,14 @@ class Device:
             if decoded_topic == entity.topic:
                 entity._action(msg.decode())
         if decoded_topic == self.ha_status_topic:
-            if msg == b'online':
-                self.discover_all()
             self.ha_status = msg
-            # elif msg == b'offline':
-                # Mark as offline ?
+            if msg == b'online':
+                print ("INFO: HA state online")
+                self.discover_all()
+            elif msg == b'offline':
+                print ("INFO: HA state offline")
+            else:
+                print (f"WARN: Unknown HA state received: {msg}")
 
 
     def loop(self):
