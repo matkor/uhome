@@ -262,7 +262,7 @@ class BinarySensor(Entity):
 
 class Button(Entity):
     """
-    More information about MQTT Binary Sensors: https://www.home-assistant.io/integrations/button.mqtt/
+    More information about MQTT Button: https://www.home-assistant.io/integrations/button.mqtt/
     """
 
     entity_type = 'button'
