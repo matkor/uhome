@@ -104,6 +104,16 @@ class Device:
         
         self._mqttc.check_msg() # Check for new MQTT messages
 
+
+    def sleep_ms(self,ms):
+        """
+        @brief Wrapper for time.sleep_ms()
+
+        @note Allows reimplemantation in child class if needed
+        """
+        time.sleep_ms(ms)
+
+
     def discover_all(self):
         """
         @brief (Re-)sends the discovery message for all entities to Home Assistant.
@@ -113,9 +123,16 @@ class Device:
         """
         for entity in self._entities:
             entity.discover()
-        
+        self.sleep_ms(3000)     # NOTE: This is ugly 
+                                # Seems sending payload just after sending discovery paylod sometimes does not work
+                                # Perhpahs we should send at once, ofert 1 sec, 3 secs 10 secs ?
+        for entity in self._entities:
+            entity.publish_last_payload()
 
-class Entity(Device):
+        for entity in self._entities:
+            entity.publish_last_payload()
+
+class Entity(Device): 
 
     def __init__(self, device, entity_name, **kwargs):
         """
@@ -205,6 +222,16 @@ class Sensor(Entity):
         if payload == self._last_payload: return
         self.device._mqttc.publish(f'{self.conf['stat_t']}', payload)
         self._last_payload = payload
+
+    def publish_last_payload(self):
+        """
+        @brief Publishes again already published payload if available
+        """
+        if self._last_payload is None:
+            return
+        self.device._mqttc.publish(f'{self.conf['stat_t']}', self._last_payload)   # REWORK: self.device.mqtt_publish(...), do not use internal ._mqttc ?
+        print (f"DEBIG: publish_last_payload(): Published {self._last_payload=} for {self}")
+
 
 class BinarySensor(Entity):
     """
