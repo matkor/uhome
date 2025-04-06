@@ -132,7 +132,7 @@ class Device:
         for entity in self._entities:
             entity.publish_last_payload()
 
-class Entity(Device): 
+class Entity:  
 
     def __init__(self, device, entity_name, **kwargs):
         """
