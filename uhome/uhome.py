@@ -24,6 +24,8 @@ class Device:
         """
         self.name = device_name
         self.id = self.name.replace(' ', '_').lower() # TODO: ö, ä, ü, ... not handled!
+            # TODO: The ID of the device must only consist of characters from the character class [a-zA-Z0-9_-] (alphanumerics, underscore and hyphen).
+            # https://www.home-assistant.io/integrations/mqtt/#discovery-topic
         self.discovery_prefix = discovery_prefix
         self.will_topic = f'{self.discovery_prefix}/availability/{self.id}'
         self.ha_status_topic = f'{self.discovery_prefix}/status'
@@ -146,6 +148,8 @@ class Device:
         """
         @brief Wrapper for time.sleep_ms()
 
+        @param ms: Delay for given number of milliseconds, should be positive or 0. Same as in time.sleep_ms()
+
         @note Allows reimplemantation in child class if needed
         """
         time.sleep_ms(ms)
@@ -186,7 +190,7 @@ class Entity:
         @type kwargs: dict
         """
         self.device = device
-        self.device._entities.append(self)
+        self.device._entities.append(self)  # TODO: self.device.add_entity(self) ?
         self.name = entity_name
         self.entity = entity_name.replace(' ', '_').lower()
         self.unique_id = f"{self.device.id}_{self.entity}"
@@ -214,7 +218,7 @@ class Entity:
             - "cmd_t": The command topic for buttons.
             - Additional parameters provided via kwargs.
        
-       @note: The configuration dictionary will include different keys based on the entity type.
+        @note: The configuration dictionary will include different keys based on the entity type.
         """
         conf = {
             "name":self.name,
@@ -228,13 +232,13 @@ class Entity:
     
     def discover(self):
         """
-        @brief Publishes the device configuration to Home Assistant.
+        @brief Publishes the entity configuration to Home Assistant.
         
         This method serializes the entity configuration (from self.make_conf() ) to a JSON 
         formatted string and publishes it to the MQTT discovery topic 
         (self.discovery_topic) using the MQTT client (self.device._mqttc).
        
-       @return None
+        @return None
         """
         conf = self.make_conf()
         self.device._mqttc.publish(self.discovery_topic, json.dumps(conf).encode('utf-8'))  # TODO: self.device.publish_json(topic, conf)
