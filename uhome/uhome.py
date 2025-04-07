@@ -32,6 +32,11 @@ class Device:
         self.device['name'] = self.name
         self.device['ids'] = self.id
 
+        self.topic_handlers = {}
+        self.set_topic_handler(self.ha_status_topic, self.ha_status_handler)
+
+
+
     def connect(self, mqttc):
         """
         @brief Connects to the MQTT broker and sets up the necessary configurations.
@@ -45,6 +50,7 @@ class Device:
         - Sets the callback function for incoming MQTT messages.
         - Connects to the MQTT broker.
         - Publishes a message to indicate the device is online.
+        - Subscribes to all topics on which entities have registered handlers
         
         @note The MQTT client instance must be properly configured before calling this method.
         """
@@ -55,7 +61,28 @@ class Device:
         self._mqttc.set_callback(self.mqtt_callback)
         self._mqttc.connect()
         self._mqttc.publish(self.will_topic, 'online', retain=True)
-        self._mqttc.subscribe(self.ha_status_topic)
+
+        for topic, handler in self.topic_handlers.items():
+            self._mqttc.subscribe(topic)
+            print (f"DEBUG: Subscribed to {topic=}")
+        
+
+    def set_topic_handler(self,topic, handler):
+        """
+        @brief Registers handler for MQTT topic
+
+        @param topic: MQTT topic to subscribe and call handler for all messages
+
+        @param handler: handler(topic, msg )
+
+        Entities register handlers for their topics
+        """
+        prev_handler = self.topic_handlers.get(topic)
+        if prev_handler:
+            print (f"WARN: Replacing handler {prev_handler} for {topic=} with new handler: {handler}")
+        else:
+            print (f"DEBUG: Handler for {topic=} set: {handler}")
+        self.topic_handlers[topic] = handler
         
 
     def mqtt_callback(self, topic, msg):
@@ -71,19 +98,29 @@ class Device:
         
         @param msg: The payload of the received MQTT message (bytes).
         """
-        decoded_topic = topic.decode()
-        for entity in self._entities:
-            if decoded_topic == entity.topic:
-                entity._action(msg.decode())
-        if decoded_topic == self.ha_status_topic:
-            self.ha_status = msg
-            if msg == b'online':
-                print ("INFO: HA state online")
-                self.discover_all()
-            elif msg == b'offline':
-                print ("INFO: HA state offline")
-            else:
-                print (f"WARN: Unknown HA state received: {msg}")
+        print (f"DEBUG: mqtt_callback( {topic=}, {msg=} )")
+        # EVENT: mqtt_callback( topic=b'homeassistant/button/uhome_test_device/state/identify', msg=b'PRESS' )
+        # EVENT: mqtt_callback( topic=b'homeassistant/status', msg=b'offline' )
+
+        decoded_topic = topic.decode()   # TODO: Rethink if we should use binary or string types for MQTT topics and messages
+        handler = self.topic_handlers.get(decoded_topic)
+        if handler:
+            # print (f"DEBUG: {handler=} found for {decoded_topic=}")
+            handler(decoded_topic,msg.decode())  # Let's use utf-8 strings for topics and messages
+        else:
+            print (f"WARN: No handler found for {decoded_topic=}")
+
+
+    def ha_status_handler(self, topic, msg ):
+        print (f"CALLED: ha_status_handler({topic=}, {msg=} )")
+        self.ha_status = msg
+        if msg == 'online':
+            print ("INFO: HA state online")
+            self.discover_all()
+        elif msg == 'offline':
+            print ("INFO: HA state offline")
+        else:
+            print (f"WARN: Unknown HA state received: {msg}")
 
 
     def loop(self):
