@@ -192,8 +192,8 @@ class Entity:
         self.unique_id = f"{self.device.id}_{self.entity}"
         self.topic_prefix = f'{self.device.discovery_prefix}/{self.entity_type}/{self.device.id}'
         self.discovery_topic = f'{self.topic_prefix}/{self.entity}/config'
-        self.topic = f'{self.topic_prefix}/state/{self.entity}'
-        self.conf = self.make_conf(**kwargs)
+        self.topic = f'{self.topic_prefix}/state/{self.entity}'  # TODO: -> .topic_state  TODO: {self.entity}/state ?
+        self._last_payload = None
 
 
     def __str__(self):
@@ -222,10 +222,6 @@ class Entity:
             "uniq_id":self.unique_id,
             "avty_t":self.device._mqttc.lw_topic, # Availability topic
         }
-        if self.entity_type == 'sensor' or self.entity_type == 'binary_sensor':
-            conf["stat_t"] = self.topic # State topic
-        elif self.entity_type == 'button':
-            conf["cmd_t"] = self.topic # Command topic
         for arg in kwargs:
             conf[arg] = kwargs[arg]
         return conf
@@ -234,13 +230,14 @@ class Entity:
         """
         @brief Publishes the device configuration to Home Assistant.
         
-        This method serializes the device configuration (self.conf) to a JSON 
+        This method serializes the entity configuration (from self.make_conf() ) to a JSON 
         formatted string and publishes it to the MQTT discovery topic 
         (self.discovery_topic) using the MQTT client (self.device._mqttc).
        
        @return None
         """
-        self.device._mqttc.publish(self.discovery_topic, json.dumps(self.conf).encode('utf-8'))
+        conf = self.make_conf()
+        self.device._mqttc.publish(self.discovery_topic, json.dumps(conf).encode('utf-8'))  # TODO: self.device.publish_json(topic, conf)
 
 class Sensor(Entity):
     """
@@ -248,7 +245,11 @@ class Sensor(Entity):
     """
 
     entity_type = 'sensor'
-    _last_payload = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf["stat_t"] = self.topic # State topic  # TODO: -> .topic_state 
+        return conf
     
     def publish(self, payload):
         """
@@ -282,20 +283,6 @@ class BinarySensor(Entity):
     entity_type = 'binary_sensor'
     _last_payload = None
     
-    def publish(self, payload):
-        """
-        @brief Publishes a payload to the MQTT topic if it has changed since the last publish.
-
-        @param payload: The data to be published. It will be converted to a string before publishing.
-        This method converts the given payload to a string and compares it with the last published payload.
-        If the payload has changed, it publishes the new payload to the MQTT topic specified in the
-        configuration and updates the last published payload.
-        """
-
-        payload = str(payload)
-        if payload == self._last_payload: return
-        self.device._mqttc.publish(f'{self.conf['stat_t']}', payload)
-        self._last_payload = payload
 
 class Button(Entity):
     """
@@ -303,17 +290,32 @@ class Button(Entity):
     """
 
     entity_type = 'button'
-    _action = None
 
-    def get_topic(self):
-        return self.conf['cmd_t']
-    
+    def __init__(self, device, entity_name, **kwargs):
+        super().__init__(device, entity_name, **kwargs)
+        self.topic_command = f'{self.topic_prefix}/set/{self.entity}'    # TODO: {self.topic_prefix}/{self.entity}/set
+        self._action = None
+        self.device.set_topic_handler(self.topic_command, self.command_handler)
+
+    #  @staticmethod
+    # def make_conf_add_topic_command(conf):
+    #     conf["cmd_t"] = self.topic_command
+    #    return conf
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf["cmd_t"] = self.topic_command
+        return conf
+
+
+    def command_handler(self,topic,msg): 
+        if self._action:
+            self._action(msg)
+
+
     def set_action(self, action):
         """
-        @brief Set the action to be performed when the button is pressed.
-        
-        This method subscribes to the command topic specified in the configuration
-        and sets the action to be executed when a message is received on that topic.
+        @brief Set the action to be performed when the simplest command is received.
         
         @param action: A callable that takes one argument, the message received.
         """
