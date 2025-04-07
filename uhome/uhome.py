@@ -239,6 +239,17 @@ class Entity:
         conf = self.make_conf()
         self.device._mqttc.publish(self.discovery_topic, json.dumps(conf).encode('utf-8'))  # TODO: self.device.publish_json(topic, conf)
 
+    
+
+    def publish_last_payload(self):
+        """
+        @brief Publishes the entity state (sensor payload)
+
+        Should be reimplemented in child classes
+        """
+        return 
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
@@ -262,26 +273,24 @@ class Sensor(Entity):
         """
         payload = str(payload)
         if payload == self._last_payload: return
-        self.device._mqttc.publish(f'{self.conf['stat_t']}', payload)
+        self.device._mqttc.publish(f'{self.topic}', payload) # REWORK: self.device.mqtt_publish(...), do not use internal ._mqttc ?
         self._last_payload = payload
 
     def publish_last_payload(self):
         """
-        @brief Publishes again already published payload if available
+        @brief Publishes again already published payload if was ever set        
         """
         if self._last_payload is None:
             return
-        self.device._mqttc.publish(f'{self.conf['stat_t']}', self._last_payload)   # REWORK: self.device.mqtt_publish(...), do not use internal ._mqttc ?
-        print (f"DEBIG: publish_last_payload(): Published {self._last_payload=} for {self}")
+        self.device._mqttc.publish(f'{self.topic}', self._last_payload)   # REWORK: self.device.mqtt_publish(...), do not use internal ._mqttc ?
+        print (f"DEBUG: publish_last_payload(): Published {self._last_payload=} for {self}")
 
 
 class BinarySensor(Entity):
     """
     More information about MQTT Binary Sensors: https://www.home-assistant.io/integrations/binary_sensor.mqtt/
     """
-
     entity_type = 'binary_sensor'
-    _last_payload = None
     
 
 class Button(Entity):
@@ -319,5 +328,5 @@ class Button(Entity):
         
         @param action: A callable that takes one argument, the message received.
         """
-        self.device._mqttc.subscribe(self.conf['cmd_t'])
+        # NOTE: There are entities with many actions
         self._action = action
