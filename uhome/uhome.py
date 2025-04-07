@@ -334,3 +334,42 @@ class Button(Entity):
         """
         # NOTE: There are entities with many actions
         self._action = action
+
+
+
+class Light(Sensor):
+    """
+    More information about MQTT Button: https://www.home-assistant.io/integrations/light.mqtt/
+    """
+    entity_type = 'light'
+    
+    def __init__(self, device, entity_name, **kwargs):
+        super().__init__(device, entity_name, **kwargs)
+        self.topic_command = f'{self.topic_prefix}/set/{self.entity}'   # TODO: {self.topic_prefix}/{self.entity}/set
+        self._action = None
+        self.device.set_topic_handler(self.topic_command, self.command_handler)
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf["cmd_t"] = self.topic_command # Command topic
+        return conf
+
+    def command_handler(self,topic,msg):
+        """
+        Expects msg=ON msg=ON
+        """       
+
+        print (f"CALLED: Light command_handler({topic=}, {msg=})")
+        if msg == "ON":
+            pass
+        elif msg == "OFF":
+            pass
+        else:
+            print (f"WARN: Unknown command msg: {msg}")
+
+        if self._action:
+            self._action(msg)
+        # When a state topic is available HA will wait for state confirmation from the device (message from state_topic). 
+        # https://www.home-assistant.io/integrations/light.mqtt/#default-schema---configuration
+        self.publish(msg)
+
