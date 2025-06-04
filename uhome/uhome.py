@@ -259,7 +259,7 @@ class Number(Entity):
         """
         payload = str(payload)
         if payload == self._last_payload: return
-        self.device._mqttc.publish(f'{self.conf['stat_t']}', payload)
+        self.device._mqttc.publish(f"{self.conf['stat_t']}", payload)
         self._last_payload = payload    
 
     def get_topic(self):
