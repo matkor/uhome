@@ -150,6 +150,9 @@ class Entity(Device):
         }
         if self.entity_type == 'sensor' or self.entity_type == 'binary_sensor':
             conf["stat_t"] = self.topic # State topic
+        elif self.entity_type == 'number':
+            conf["stat_t"] = self.topic # State topic
+            conf["cmd_t"] = self.topic # Command topic
         elif self.entity_type == 'button':
             conf["cmd_t"] = self.topic # Command topic
         for arg in kwargs:
@@ -232,6 +235,44 @@ class Button(Entity):
         and sets the action to be executed when a message is received on that topic.
         
         @param action: A callable that takes one argument, the message received.
+        """
+        self.device._mqttc.subscribe(self.conf['cmd_t'])
+        self._action = action
+        
+class Number(Entity):
+    """
+    More information about MQTT Number: https://www.home-assistant.io/integrations/number.mqtt/
+    """
+
+    entity_type = 'number'
+    _action = None
+    _last_payload = None
+
+    def publish(self, payload):
+        """
+        @brief Publishes a payload to the MQTT topic if it has changed since the last publish.
+
+        @param payload: The data to be published. It will be converted to a string before publishing.
+        This method converts the given payload to a string and compares it with the last published payload.
+        If the payload has changed, it publishes the new payload to the MQTT topic specified in the
+        configuration and updates the last published payload.
+        """
+        payload = str(payload)
+        if payload == self._last_payload: return
+        self.device._mqttc.publish(f"{self.conf['stat_t']}", payload)
+        self._last_payload = payload    
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+    
+    def set_action(self, action):
+        """
+        @brief Set the action to be performed when the number value is changed.
+        
+        This method subscribes to the command topic specified in the configuration
+        and sets the action to be executed when a message is received on that topic.
+        
+        @param action: A callable that takes one argument, the message received with the new number value.
         """
         self.device._mqttc.subscribe(self.conf['cmd_t'])
         self._action = action
